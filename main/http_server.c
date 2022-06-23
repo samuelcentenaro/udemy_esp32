@@ -101,6 +101,10 @@ static void http_server_monitor(void *parameter)
         ESP_LOGI(TAG, "HTTP_MSG_WIFI_CONNECT_FAIL");
         g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_FAILED;
         break;
+      case HTTP_MSG_WIFI_USER_DISCONNECT:
+        ESP_LOGI(TAG, "HTTP_MSG_WIFI_USER_DISCONNECT");
+        g_wifi_connect_status = HTTP_WIFI_STATUS_DISCONNECTED;
+        break;
       case HTTP_MSG_OTA_UPDATE_SUCCESSFUL:
         ESP_LOGI(TAG, "HTTP_MSG_OTA_UPDATE_SUCCESSFUL");
         g_fw_update_status = OTA_UPDATE_SUCCESSFUL;
@@ -427,6 +431,18 @@ static esp_err_t http_server_wifi_get_connect_info_handler(httpd_req_t *req)
 }
 
 /**
+ * @brief  wifiDisconnect.json handler response by sending a message to Wifi applicatoin disconnect
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_wifi_disconnect_json_handler(httpd_req_t *req)
+{
+  ESP_LOGI(TAG, "/wifiDisconnect.json requested");
+  wifi_app_send_message(WIFI_APP_MSG_USER_REQUESTED_STA_DISCONNECT);
+  return ESP_OK;
+}
+
+/**
  * @brief Sets up default httpd server configuration
  * @return http server instance handle if successful, NULL otherwise
  */
@@ -551,6 +567,14 @@ static httpd_handle_t http_server_configure(void)
         .handler = http_server_wifi_get_connect_info_handler,
         .user_ctx = NULL};
     httpd_register_uri_handler(http_server_handle, &wifi_connect_info_json);
+
+    // register wifiDisconnect.json handler
+    httpd_uri_t wifi_disconnect_json = {
+        .uri = "/wifiDisconnect.json",
+        .method = HTTP_DELETE,
+        .handler = http_server_wifi_disconnect_json_handler,
+        .user_ctx = NULL};
+    httpd_register_uri_handler(http_server_handle, &wifi_disconnect_json);
 
     return http_server_handle;
   }
